@@ -108,6 +108,13 @@ module LinkedIn
         post(path, MultiJson.dump(payload), headers)
       end
 
+      def me
+        path = "/me"
+        headers = { "Content-Type" => "application/json",
+                    "X-Restli-Protocol-Version" => "2.0.0" }
+        get(path, headers)
+      end
+
       # Create a comment on an update from the authenticated user
       #
       # @see http://developer.linkedin.com/documents/commenting-reading-comments-and-likes-network-updates
