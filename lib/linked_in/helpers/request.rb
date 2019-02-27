@@ -13,7 +13,7 @@ module LinkedIn
 
         def get(path, options={})
           response = access_token.get("#{API_PATH}#{path}", {:headers => DEFAULT_HEADERS.merge(options)})
-          Rails.logger.debug response
+          Rails.logger.debug response.inspect
           raise_errors(response)
           response.body
         end
