@@ -44,7 +44,7 @@ module LinkedIn
         v2_post(path, MultiJson.dump(share_payload(urn, share)))
       end
 
-      def v2_add_share_media(urn, image, share = {})
+      def v2_add_share_media(urn, share = {})
         path = '/shares'
         v2_post(path, MultiJson.dump(share.merge!({ owner: "urn:li:person:#{urn}" })))
       end
