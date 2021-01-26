@@ -44,48 +44,81 @@ module LinkedIn
         v2_post(path, MultiJson.dump(share_payload(urn, share)))
       end
 
+      def v2_add_share_media(urn, image, share = {})
+        path = '/shares'
+        v2_post(path, MultiJson.dump(share.merge!({ owner: "urn:li:person:#{urn}" })))
+      end
+
+      def rich_image_share(urn, image)
+        upload_data = register_image_upload(urn)
+        data = JSON.parse(upload_data.body)
+        url = data['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
+        asset = data['value']['asset']
+        RestClient.post(url, image, {:Authorization => "Bearer #{@auth_token}", :Content_Type => 'image/jpeg'})
+        asset
+      end
+
+      def register_image_upload(urn)
+        payload = {
+          "registerUploadRequest": {
+            "owner": "urn:li:person:#{urn}",
+            "recipes": [
+              "urn:li:digitalmediaRecipe:feedshare-image"
+            ],
+            "serviceRelationships": [
+              {
+                "identifier": "urn:li:userGeneratedContent",
+                "relationshipType": "OWNER"
+              }
+            ]
+          }
+        }
+        path = '/assets?action=registerUpload'
+        v2_post(path, MultiJson.dump(payload))
+      end
+
       private
 
-        def share_payload(urn, share)
-          payload = { author: "urn:li:person:#{urn}",
-            lifecycleState: 'PUBLISHED',
-            visibility: {
-              'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC'
-            }
+      def share_payload(urn, share)
+        payload = { author: "urn:li:person:#{urn}",
+          lifecycleState: 'PUBLISHED',
+          visibility: {
+            'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC'
           }
+        }
 
-          return add_url_to_payload(payload, share) if share[:url]
+        return add_url_to_payload(payload, share) if share[:url]
 
-          add_comment_to_payload(payload, share)
+        add_comment_to_payload(payload, share)
+      end
+
+      def add_url_to_payload(payload, share)
+        media = { status: 'READY', originalUrl: share[:url] }
+        if share[:description]
+          media[:description] = { text: share[:description] }
         end
-
-        def add_url_to_payload(payload, share)
-          media = { status: 'READY', originalUrl: share[:url] }
-          if share[:description]
-            media[:description] = { text: share[:description] }
-          end
-          if share[:title]
-            media[:title] = { text: share[:title] }
-          end
-          payload[:specificContent] = {
-            'com.linkedin.ugc.ShareContent' => {
-              shareCommentary: { text: share[:comment] },
-              shareMediaCategory: 'ARTICLE',
-              media: [media]
-            }
+        if share[:title]
+          media[:title] = { text: share[:title] }
+        end
+        payload[:specificContent] = {
+          'com.linkedin.ugc.ShareContent' => {
+            shareCommentary: { text: share[:comment] },
+            shareMediaCategory: 'ARTICLE',
+            media: [media]
           }
-          payload
-        end
+        }
+        payload
+      end
 
-        def add_comment_to_payload(payload, share)
-          payload[:specificContent] = {
-            'com.linkedin.ugc.ShareContent' => {
-              shareCommentary: { text: share[:comment] },
-              shareMediaCategory: 'NONE'
-            }
+      def add_comment_to_payload(payload, share)
+        payload[:specificContent] = {
+          'com.linkedin.ugc.ShareContent' => {
+            shareCommentary: { text: share[:comment] },
+            shareMediaCategory: 'NONE'
           }
-          payload
-        end
+        }
+        payload
+      end
     end
   end
 end
